@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Keeplea - AI 비주얼 인벤토리 & 정보 정리</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+    @keyframes scan {
+      0% { top: 0%; opacity: 0.8; }
+      50% { opacity: 1; }
+      100% { top: 96%; opacity: 0.8; }
+    }
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #22c55e, #10b981, transparent);
+      box-shadow: 0 0 15px #22c55e;
+      animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-28">
+
+  <!-- 상단 네비게이션 바 -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent flex items-center gap-1.5">
+            Keeplea <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">AI Vault</span>
+          </h1>
+          <p class="text-[11px] text-slate-500 font-medium">사진 한 장으로 정리하는 스마트 인벤토리</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button onclick="openSettingsModal()" class="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" title="설정">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </button>
+        <button onclick="loadItems()" class="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" title="새로고침">
+          <svg id="refresh-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 검색창 -->
+    <div class="max-w-4xl mx-auto px-4 pb-2">
+      <div class="relative">
+        <input type="text" id="search-input" oninput="handleSearch()" placeholder="자연어로 검색 (예: 세탁기 시리얼, 거실 페인트, 와이파이 비번)..." 
+               class="w-full pl-10 pr-10 py-2.5 bg-slate-100/90 text-sm rounded-xl border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-slate-400">
+        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 동적 카테고리 필터 탭 (JS 자동 렌더링) -->
+    <div id="category-tabs-container" class="max-w-4xl mx-auto px-4 pb-3 flex space-x-2 overflow-x-auto custom-scrollbar no-scrollbar">
+      <button onclick="selectCategory('전체')" class="category-btn active px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all bg-emerald-600 text-white shadow-sm" data-category="전체">
+        🌐 전체 (<span id="count-all">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- 메인 컨텐츠 영역 -->
+  <main class="max-w-4xl mx-auto px-4 pt-4">
+    <!-- 상태/안내 배너 (API 키 미설정 시) -->
+    <div id="no-api-key-banner" class="hidden mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start justify-between gap-3 shadow-sm">
+      <div class="flex items-start gap-2.5">
+        <span class="text-xl">⚠️</span>
+        <div class="text-xs leading-relaxed">
+          <p class="font-bold text-sm text-amber-950 mb-0.5">Gemini API 키가 설정되지 않았습니다</p>
+          AI 이미지 자동 분석 기능을 사용하려면 Google AI Studio에서 발급받은 무료 API 키를 등록해주세요.
+        </div>
+      </div>
+      <button onclick="openSettingsModal()" class="px-3 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 whitespace-nowrap">
+        설정하기
+      </button>
+    </div>
+
+    <!-- 로딩 스켈레톤 -->
+    <div id="loading-state" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 animate-pulse flex space-x-3">
+        <div class="w-24 h-24 bg-slate-200 rounded-xl"></div>
+        <div class="flex-1 space-y-2 py-1">
+          <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+          <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+          <div class="h-5 bg-slate-200 rounded w-full mt-2"></div>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 animate-pulse flex space-x-3">
+        <div class="w-24 h-24 bg-slate-200 rounded-xl"></div>
+        <div class="flex-1 space-y-2 py-1">
+          <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+          <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+          <div class="h-5 bg-slate-200 rounded w-full mt-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 빈 상태 (Empty State) -->
+    <div id="empty-state" class="hidden text-center py-16 px-4">
+      <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-3xl">
+        📷
+      </div>
+      <h3 class="text-base font-bold text-slate-800 mb-1">아직 저장된 항목이 없습니다</h3>
+      <p class="text-xs text-slate-500 max-w-sm mx-auto mb-6">
+        가전제품 스티커, 와이파이 라벨, 영수증, 페인트 색상 코드 등을 사진으로 찍어보세요. AI가 핵심 정보만 쏙 추출해 저장합니다!
+      </p>
+      <button onclick="triggerCamera()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-md shadow-emerald-500/20">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        첫 사진 촬영하기
+      </button>
+    </div>
+
+    <!-- 아이템 카드 그리드 -->
+    <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+  </main>
+
+  <!-- 하단 플로팅 액션 바 (촬영 / 사진 / 문서 / 음성) -->
+  <div class="fixed bottom-5 inset-x-0 z-20 flex justify-center px-4 pointer-events-none">
+    <div class="bg-slate-900/90 backdrop-blur-md text-white p-1.5 px-2 rounded-2xl shadow-2xl border border-slate-700/50 flex items-center gap-1.5 pointer-events-auto">
+      <!-- 1. 카메라 즉시 촬영 -->
+      <button onclick="triggerCamera()" class="flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-xs font-bold hover:brightness-110 shadow-md shadow-emerald-500/25 active:scale-95 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <span>촬영</span>
+      </button>
+
+      <!-- 2. 갤러리 사진 선택 -->
+      <button onclick="triggerGallery()" class="flex items-center gap-1 px-2.5 py-2 bg-slate-800 text-slate-200 hover:text-white rounded-xl text-xs font-medium hover:bg-slate-700 active:scale-95 transition-all" title="사진 앨범">
+        <span>🖼️</span>
+        <span class="hidden sm:inline">사진</span>
+      </button>
+
+      <!-- 3. PDF/문서 업로드 -->
+      <button onclick="triggerDoc()" class="flex items-center gap-1 px-2.5 py-2 bg-slate-800 text-slate-200 hover:text-white rounded-xl text-xs font-medium hover:bg-slate-700 active:scale-95 transition-all" title="PDF 및 문서 업로드">
+        <span>📄</span>
+        <span class="text-xs font-semibold">문서/PDF</span>
+      </button>
+
+      <!-- 4. 음성 메모/녹음 파일 업로드 -->
+      <button onclick="triggerAudio()" class="flex items-center gap-1 px-2.5 py-2 bg-indigo-900/60 text-indigo-200 hover:text-white rounded-xl text-xs font-medium hover:bg-indigo-800 active:scale-95 transition-all" title="음성 메모 및 통화 녹음 업로드">
+        <span>🎙️</span>
+        <span class="text-xs font-semibold">음성메모</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 숨겨진 멀티모달 파일 인풋들 -->
+  <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="hidden" onchange="handleFileSelected(event, 'image')">
+  <input type="file" id="gallery-file-input" accept="image/*" class="hidden" onchange="handleFileSelected(event, 'image')">
+  <input type="file" id="doc-file-input" accept="application/pdf,.pdf,text/plain,.txt,text/csv,.csv,.docx,.xlsx,.pptx" class="hidden" onchange="handleFileSelected(event, 'doc')">
+  <input type="file" id="audio-file-input" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" class="hidden" onchange="handleFileSelected(event, 'audio')">
+
+  <!-- AI 분석 중 로딩 오버레이 모달 -->
+  <div id="ai-scanning-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl relative overflow-hidden">
+      
+      <!-- 프리뷰 박스 (이미지 또는 파일/음성 아이콘) -->
+      <div id="scanning-preview-container" class="relative w-48 h-48 mx-auto mb-5 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shadow-inner">
+        <img id="scanning-preview-img" src="" class="w-full h-full object-cover">
+        <div id="scanning-preview-placeholder" class="hidden flex flex-col items-center justify-center p-4 text-center">
+          <span id="scanning-placeholder-icon" class="text-5xl mb-2">📄</span>
+          <span id="scanning-placeholder-name" class="text-xs font-bold text-slate-700 max-w-[150px] truncate">파일명</span>
+        </div>
+        <div class="scanner-line"></div>
+        <div class="absolute inset-0 bg-emerald-500/10 pointer-events-none"></div>
+      </div>
+
+      <div class="space-y-1.5">
+        <div id="scanning-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold animate-pulse">
+          <span>✨</span> Gemini 3.6 Multimodal
+        </div>
+        <h3 id="scanning-title" class="text-base font-bold text-slate-800">AI 멀티모달 분석 중...</h3>
+        <p id="scanning-desc" class="text-xs text-slate-500 leading-relaxed">
+          내용을 정밀 분석하여 핵심 요약 및 메타데이터를 추출하고 있습니다.
+        </p>
+      </div>
+
+      <div class="mt-5 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full animate-[scan_1.5s_infinite]"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상세 보기 / 수정 모달 -->
+  <div id="detail-modal" class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- 모달 헤더 -->
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <input list="category-suggestions" id="modal-category-input" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 focus:outline-none focus:bg-white transition-colors" placeholder="카테고리">
+          <datalist id="category-suggestions"></datalist>
+          <span id="modal-date" class="text-[11px] text-slate-400 font-medium"></span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="confirmDeleteItem()" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="삭제">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+          <button onclick="closeDetailModal()" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 모달 바디 스크롤 -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 custom-scrollbar">
+        <!-- 원본 이미지 -->
+        <div class="relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 max-h-60 flex items-center justify-center group">
+          <img id="modal-image" src="" alt="" class="w-full h-60 object-contain bg-slate-900/5">
+          <a id="modal-image-link" href="#" target="_blank" class="absolute bottom-2 right-2 px-2.5 py-1 bg-black/60 backdrop-blur-sm text-white text-[11px] rounded-lg hover:bg-black/80 flex items-center gap-1">
+            <span>원본 보기</span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+          </a>
+        </div>
+
+        <!-- 제목 및 요약 -->
+        <div>
+          <input type="text" id="modal-title-input" class="text-base font-bold text-slate-800 w-full p-2 bg-slate-50 rounded-xl border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none">
+          <textarea id="modal-summary-input" rows="2" class="mt-1 text-xs text-slate-600 w-full p-2 bg-slate-50 rounded-xl border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none placeholder:text-slate-400" placeholder="요약 설명"></textarea>
+        </div>
+
+        <!-- 키-밸류 속성 목록 -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span>추출된 주요 정보 (Key-Values)</span>
+            <button onclick="addKeyField()" class="text-emerald-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-0.5">
+              + 항목 추가
+            </button>
+          </h4>
+          <div id="modal-keyvalues-list" class="space-y-2"></div>
+        </div>
+
+        <!-- 와이파이 QR 생성 버튼 (와이파이 카테고리일 때) -->
+        <div id="modal-wifi-qr-container" class="hidden">
+          <button onclick="openWifiQrModalFromDetail()" class="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 hover:brightness-105">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+            </svg>
+            손님용 와이파이 접속 QR 코드 생성
+          </button>
+        </div>
+
+        <!-- 태그 -->
+        <div>
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">태그 (콤마로 구분)</label>
+          <input type="text" id="modal-tags-input" class="w-full text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none" placeholder="예: 거실, 공유기, 와이파이">
+        </div>
+      </div>
+
+      <!-- 모달 푸터 (저장 버튼) -->
+      <div class="p-4 border-t border-slate-100 flex gap-2 bg-slate-50">
+        <button onclick="closeDetailModal()" class="flex-1 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50">
+          닫기
+        </button>
+        <button onclick="saveItemChanges()" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-md shadow-emerald-500/20">
+          변경사항 저장
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 와이파이 QR 모달 -->
+  <div id="wifi-qr-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 text-center shadow-2xl relative">
+      <button onclick="closeWifiQrModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+        📶
+      </div>
+
+      <h3 class="text-base font-bold text-slate-800" id="qr-ssid-title">와이파이 접속</h3>
+      <p class="text-xs text-slate-500 mb-4">카메라 앱으로 QR 코드를 스캔하면 비밀번호 입력 없이 바로 연결됩니다.</p>
+
+      <!-- QR 코드 렌더링 컨테이너 -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 inline-block mb-4 shadow-inner">
+        <div id="qrcode-container" class="flex justify-center"></div>
+      </div>
+
+      <!-- 비밀번호 복사 버튼 -->
+      <div class="bg-slate-100 p-2.5 rounded-xl flex items-center justify-between text-xs mb-3">
+        <span class="text-slate-500">비밀번호:</span>
+        <span id="qr-password-text" class="font-mono font-bold text-slate-800 truncate max-w-[120px]"></span>
+        <button onclick="copyQrPassword()" class="px-2 py-1 bg-white rounded-lg font-semibold text-emerald-700 hover:bg-emerald-50 border border-slate-200">
+          복사
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설정 모달 -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">⚙️</div>
+          <h3 class="text-base font-bold text-slate-800">앱 설정</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Gemini API 키</label>
+          <input type="password" id="settings-api-key" placeholder="AIzaSy..." class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none">
+          <p class="text-[11px] text-slate-500 mt-1">
+            * <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 underline font-semibold">Google AI Studio</a>에서 발급받은 키 입력
+          </p>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Gemini 모델 선택 / 지정</label>
+          <div class="space-y-1.5">
+            <select id="settings-model-select" onchange="handleModelSelectChange(this.value)" class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-xs font-semibold">
+              <option value="gemini-3.6-flash" selected>Gemini 3.6 Flash (사용자 유료 플랜 기본값)</option>
+              <option value="gemini-3.6">Gemini 3.6</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              <option value="custom">직접 모델명 입력...</option>
+            </select>
+            <input type="text" id="settings-model-custom" placeholder="예: gemini-3.6, gemini-3.7-flash" class="hidden w-full p-2 bg-slate-50 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none text-xs font-mono">
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">
+            * 보유하신 계정/플랜에서 지원하는 모델명을 자유롭게 지정할 수 있습니다.
+          </p>
+        </div>
+
+        <div id="sheet-link-container" class="hidden p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <p class="font-bold text-slate-700 mb-1">연동된 Google 스프레드시트 DB</p>
+          <a id="sheet-link" href="#" target="_blank" class="text-emerald-600 underline font-semibold flex items-center gap-1">
+            <span>스프레드시트 열기</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+          </a>
+        </div>
+
+        <!-- 데이터 백업 및 복원 (GitHub Pages 로컬 스토리지용) -->
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+          <p class="font-bold text-slate-700">📦 데이터 백업 및 복원</p>
+          <div class="flex gap-2">
+            <button onclick="exportBackupJson()" class="flex-1 py-1.5 px-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold flex items-center justify-center gap-1">
+              <span>⬇️</span> JSON 백업 다운로드
+            </button>
+            <button onclick="document.getElementById('backup-file-input').click()" class="flex-1 py-1.5 px-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-semibold flex items-center justify-center gap-1">
+              <span>⬆️</span> 백업 파일 복원
+            </button>
+          </div>
+          <input type="file" id="backup-file-input" accept=".json" class="hidden" onchange="importBackupJson(event)">
+        </div>
+      </div>
+
+      <div class="mt-6 flex gap-2">
+        <button onclick="closeSettingsModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200">
+          닫기
+        </button>
+        <button onclick="saveApiKeySettings()" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700">
+          저장하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 pointer-events-none opacity-0 transition-opacity duration-200">
+    <span id="toast-icon">✅</span>
+    <span id="toast-message">알림</span>
+  </div>
+
+  <!-- 자바스크립트 로직 -->
+  <script>
+    let allItems = [];
+    let currentCategory = '전체';
+    let activeItem = null;
+
+    // 초기화
+    document.addEventListener("DOMContentLoaded", () => {
+      loadSettings();
+      loadItems();
+    });
+
+    // 토스트 표시 함수
+    function showToast(msg, icon = '✅') {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-message").innerText = msg;
+      document.getElementById("toast-icon").innerText = icon;
+      toast.classList.remove("opacity-0");
+      setTimeout(() => {
+        toast.classList.add("opacity-0");
+      }, 2500);
+    }
+
+    // ----------------------------------------------------
+    // IndexedDB 브라우저 로컬 데이터베이스 (GitHub Pages 무제한 용량 지원)
+    // ----------------------------------------------------
+    const IDB_NAME = "KeepleaDB";
+    const IDB_STORE = "items";
+    const DEFAULT_API_KEY = "";
+    const DEFAULT_MODEL = "gemini-3.6-flash";
+
+    function getIndexedDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE, { keyPath: "id" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGetAllItems() {
+      try {
+        const db = await getIndexedDb();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(IDB_STORE, "readonly");
+          const req = tx.objectStore(IDB_STORE).getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => resolve([]);
+        });
+      } catch (e) {
+        const local = localStorage.getItem("keeplea_items");
+        return local ? JSON.parse(local) : [];
+      }
+    }
+
+    async function dbSaveItem(item) {
+      try {
+        const db = await getIndexedDb();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(IDB_STORE, "readwrite");
+          const req = tx.objectStore(IDB_STORE).put(item);
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (e) {
+        const items = await dbGetAllItems();
+        const filtered = items.filter(i => i.id !== item.id);
+        filtered.unshift(item);
+        localStorage.setItem("keeplea_items", JSON.stringify(filtered));
+        return true;
+      }
+    }
+
+    async function dbDeleteItem(id) {
+      try {
+        const db = await getIndexedDb();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(IDB_STORE, "readwrite");
+          const req = tx.objectStore(IDB_STORE).delete(id);
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (e) {
+        const items = await dbGetAllItems();
+        const filtered = items.filter(i => i.id !== id);
+        localStorage.setItem("keeplea_items", JSON.stringify(filtered));
+        return true;
+      }
+    }
+
+    // 설정 로드
+    function loadSettings() {
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler((settings) => {
+            if (!settings.hasApiKey) {
+              document.getElementById("no-api-key-banner").classList.remove("hidden");
+            } else {
+              document.getElementById("no-api-key-banner").classList.add("hidden");
+            }
+            if (settings.sheetUrl) {
+              document.getElementById("sheet-link-container").classList.remove("hidden");
+              document.getElementById("sheet-link").href = settings.sheetUrl;
+            }
+            if (settings.model) {
+              const select = document.getElementById("settings-model-select");
+              const customInput = document.getElementById("settings-model-custom");
+              const options = Array.from(select.options).map(o => o.value);
+              if (options.includes(settings.model)) {
+                select.value = settings.model;
+                customInput.classList.add("hidden");
+              } else {
+                select.value = "custom";
+                customInput.value = settings.model;
+                customInput.classList.remove("hidden");
+              }
+            }
+          })
+          .getSettings();
+      } else {
+        // GitHub Pages 클라이언트 모드
+        let apiKey = localStorage.getItem("gemini_api_key") || DEFAULT_API_KEY;
+        let model = localStorage.getItem("gemini_model") || DEFAULT_MODEL;
+
+        if (!localStorage.getItem("gemini_api_key")) {
+          localStorage.setItem("gemini_api_key", DEFAULT_API_KEY);
+        }
+        if (!localStorage.getItem("gemini_model")) {
+          localStorage.setItem("gemini_model", DEFAULT_MODEL);
+        }
+
+        document.getElementById("settings-api-key").value = apiKey;
+        const select = document.getElementById("settings-model-select");
+        const customInput = document.getElementById("settings-model-custom");
+        const options = Array.from(select.options).map(o => o.value);
+        if (options.includes(model)) {
+          select.value = model;
+          customInput.classList.add("hidden");
+        } else {
+          select.value = "custom";
+          customInput.value = model;
+          customInput.classList.remove("hidden");
+        }
+      }
+    }
+
+    function handleModelSelectChange(val) {
+      const customInput = document.getElementById("settings-model-custom");
+      if (val === 'custom') {
+        customInput.classList.remove("hidden");
+        customInput.focus();
+      } else {
+        customInput.classList.add("hidden");
+      }
+    }
+
+    // 아이템 로드 (GAS 또는 IndexedDB 하이브리드)
+    async function loadItems() {
+      const refreshIcon = document.getElementById("refresh-icon");
+      if (refreshIcon) refreshIcon.classList.add("animate-spin");
+      document.getElementById("loading-state").classList.remove("hidden");
+      document.getElementById("empty-state").classList.add("hidden");
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+            document.getElementById("loading-state").classList.add("hidden");
+            if (res.success) {
+              allItems = res.items || [];
+              renderItems();
+            } else {
+              showToast("데이터 불러오기 실패: " + res.error, "❌");
+            }
+          })
+          .withFailureHandler((err) => {
+            if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+            document.getElementById("loading-state").classList.add("hidden");
+            showToast("오류 발생: " + err.message, "❌");
+          })
+          .getItems();
+      } else {
+        // GitHub Pages 클라이언트 모드 (IndexedDB 로드)
+        try {
+          const items = await dbGetAllItems();
+          if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+          document.getElementById("loading-state").classList.add("hidden");
+          allItems = items.length > 0 ? items : [
+            {
+              id: 'sample_1',
+              createdAt: '2026-09-02 08:30:00',
+              category: '와이파이/네트워크',
+              title: '거실 메인 ipTIME 공유기 (예시)',
+              summary: '거실에 설치된 5GHz 기가비트 와이파이 공유기',
+              keyValues: { 'SSID': 'MyHome_5G', '비밀번호': 'secretPass888!', 'IP주소': '192.168.0.1' },
+              tags: ['와이파이', '공유기', '거실', '인터넷'],
+              imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400',
+              fileId: 'mock'
+            }
+          ];
+          renderItems();
+        } catch(e) {
+          if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+          document.getElementById("loading-state").classList.add("hidden");
+          renderItems();
+        }
+      }
+    }
+
+    // 카테고리 메타데이터(아이콘 및 스타일) 자동 판별 함수
+    function getCategoryMeta(cat) {
+      const c = String(cat || '기타').trim().toLowerCase();
+      if (c.includes('가전') || c.includes('디지털') || c.includes('전자') || c.includes('기기')) {
+        return { icon: '⚡', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
+      }
+      if (c.includes('와이파이') || c.includes('네트워크') || c.includes('인터넷') || c.includes('공유기')) {
+        return { icon: '📶', badgeClass: 'bg-teal-100 text-teal-800 border-teal-200' };
+      }
+      if (c.includes('차량') || c.includes('자동차') || c.includes('정비') || c.includes('오토바이') || c.includes('차')) {
+        return { icon: '🚗', badgeClass: 'bg-blue-100 text-blue-800 border-blue-200' };
+      }
+      if (c.includes('스포츠') || c.includes('골프') || c.includes('운동') || c.includes('헬스') || c.includes('테니스') || c.includes('자전거')) {
+        return { icon: '⛳', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+      }
+      if (c.includes('생활') || c.includes('인테리어') || c.includes('페인트') || c.includes('가구') || c.includes('조명')) {
+        return { icon: '🛋️', badgeClass: 'bg-purple-100 text-purple-800 border-purple-200' };
+      }
+      if (c.includes('영수증') || c.includes('보증서') || c.includes('계약') || c.includes('문서') || c.includes('티켓') || c.includes('서류')) {
+        return { icon: '🧾', badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
+      }
+      if (c.includes('의약품') || c.includes('건강') || c.includes('병원') || c.includes('약') || c.includes('영양제')) {
+        return { icon: '💊', badgeClass: 'bg-rose-100 text-rose-800 border-rose-200' };
+      }
+      if (c.includes('와인') || c.includes('주류') || c.includes('식품') || c.includes('음료') || c.includes('커피') || c.includes('요리')) {
+        return { icon: '🍷', badgeClass: 'bg-pink-100 text-pink-800 border-pink-200' };
+      }
+      if (c.includes('식물') || c.includes('원예') || c.includes('가드닝') || c.includes('화분') || c.includes('꽃')) {
+        return { icon: '🌿', badgeClass: 'bg-green-100 text-green-800 border-green-200' };
+      }
+      if (c.includes('반려동물') || c.includes('강아지') || c.includes('고양이') || c.includes('펫') || c.includes('사료')) {
+        return { icon: '🐾', badgeClass: 'bg-orange-100 text-orange-900 border-orange-200' };
+      }
+      if (c.includes('캠핑') || c.includes('아웃도어') || c.includes('등산') || c.includes('낚시') || c.includes('여행')) {
+        return { icon: '⛺', badgeClass: 'bg-lime-100 text-lime-800 border-lime-200' };
+      }
+      if (c.includes('육아') || c.includes('아이') || c.includes('키즈') || c.includes('장난감') || c.includes('유아')) {
+        return { icon: '🧸', badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+      }
+      if (c.includes('패션') || c.includes('의류') || c.includes('신발') || c.includes('가방') || c.includes('악세서리')) {
+        return { icon: '👗', badgeClass: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200' };
+      }
+      if (c.includes('공구') || c.includes('diy') || c.includes('수리') || c.includes('철물') || c.includes('부품')) {
+        return { icon: '🛠️', badgeClass: 'bg-slate-200 text-slate-800 border-slate-300' };
+      }
+      return { icon: '🏷️', badgeClass: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
+
+    // 동적 카테고리 탭 렌더링
+    function renderCategoryTabs() {
+      const container = document.getElementById("category-tabs-container");
+      const suggestions = document.getElementById("category-suggestions");
+      
+      // 고유 카테고리 집계
+      const counts = {};
+      allItems.forEach(item => {
+        const cat = (item.category && String(item.category).trim()) || '기타';
+        counts[cat] = (counts[cat] || 0) + 1;
+      });
+
+      const uniqueCategories = Object.keys(counts);
+
+      // 모달 datalist 업데이트
+      if (suggestions) {
+        suggestions.innerHTML = uniqueCategories.map(c => `<option value="${escapeAttr(c)}"></option>`).join("");
+      }
+
+      // 탭 HTML 생성
+      let tabsHtml = `
+        <button onclick="selectCategory('전체')" class="category-btn ${currentCategory === '전체' ? 'active bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:border-emerald-300'} px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-category="전체">
+          🌐 전체 (<span id="count-all">${allItems.length}</span>)
+        </button>
+      `;
+
+      uniqueCategories.forEach(cat => {
+        const meta = getCategoryMeta(cat);
+        const isActive = (currentCategory === cat);
+        const btnClass = isActive 
+          ? 'active bg-emerald-600 text-white shadow-sm' 
+          : 'bg-white text-slate-600 border border-slate-200 hover:border-emerald-300';
+
+        tabsHtml += `
+          <button onclick="selectCategory('${escapeAttr(cat)}')" class="category-btn ${btnClass} px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-category="${escapeAttr(cat)}">
+            ${meta.icon} ${escapeHtml(cat)} (${counts[cat]})
+          </button>
+        `;
+      });
+
+      container.innerHTML = tabsHtml;
+    }
+
+    // 아이템 썸네일/아이콘 렌더링 (이미지/문서/음성 판별)
+    function getItemThumbnailHtml(item) {
+      const isAudio = (item.category && item.category.includes('음성')) || (item.mimeType && item.mimeType.startsWith('audio/')) || (item.fileName && /\.(mp3|m4a|wav|aac|ogg)$/i.test(item.fileName));
+      const isDoc = (item.category && (item.category.includes('문서') || item.category.includes('계약') || item.category.includes('설명서'))) || (item.mimeType && (item.mimeType.includes('pdf') || item.mimeType.includes('text') || item.mimeType.includes('csv'))) || (item.fileName && /\.(pdf|txt|csv|tsv|docx|xlsx)$/i.test(item.fileName));
+
+      if (isAudio) {
+        return `
+          <div class="w-20 h-20 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex flex-col items-center justify-center text-white flex-shrink-0 shadow-sm">
+            <span class="text-2xl mb-0.5">🎙️</span>
+            <span class="text-[10px] font-bold">음성 메모</span>
+          </div>
+        `;
+      }
+      if (isDoc) {
+        return `
+          <div class="w-20 h-20 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 flex flex-col items-center justify-center text-white flex-shrink-0 shadow-sm">
+            <span class="text-2xl mb-0.5">📄</span>
+            <span class="text-[10px] font-bold">문서/PDF</span>
+          </div>
+        `;
+      }
+      return `
+        <div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 border border-slate-100 flex-shrink-0">
+          <img src="${item.imageUrl}" alt="${escapeAttr(item.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\' fill=\'%23cbd5e1\' viewBox=\'0 0 24 24\'><path d=\'M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z\'/></svg>'">
+        </div>
+      `;
+    }
+
+    // 아이템 렌더링
+    function renderItems() {
+      const grid = document.getElementById("items-grid");
+      const emptyState = document.getElementById("empty-state");
+      const searchQuery = document.getElementById("search-input").value.trim().toLowerCase();
+      
+      // 카테고리 탭 동적 갱신
+      renderCategoryTabs();
+
+      let filtered = allItems.filter(item => {
+        // 카테고리 필터
+        if (currentCategory !== '전체' && item.category !== currentCategory) {
+          return false;
+        }
+        // 검색어 필터 (제목, 요약, 태그, 키-밸류)
+        if (searchQuery) {
+          const matchTitle = (item.title || "").toLowerCase().includes(searchQuery);
+          const matchSummary = (item.summary || "").toLowerCase().includes(searchQuery);
+          const matchTags = (item.tags || []).some(t => t.toLowerCase().includes(searchQuery));
+          const matchKv = Object.entries(item.keyValues || {}).some(([k, v]) => 
+            k.toLowerCase().includes(searchQuery) || String(v).toLowerCase().includes(searchQuery)
+          );
+          return matchTitle || matchSummary || matchTags || matchKv;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = "";
+        emptyState.classList.remove("hidden");
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      grid.innerHTML = filtered.map(item => {
+        const isWifi = item.category === '와이파이/네트워크' || (item.keyValues && (item.keyValues['SSID'] || item.keyValues['비밀번호']));
+        const kvEntries = Object.entries(item.keyValues || {}).slice(0, 3);
+        const meta = getCategoryMeta(item.category);
+
+        const kvHtml = kvEntries.map(([k, v]) => `
+          <div class="flex items-center justify-between text-xs bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-100 transition-colors">
+            <span class="text-slate-400 font-medium truncate max-w-[80px]">${escapeHtml(k)}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono font-semibold text-slate-800 truncate max-w-[140px]">${escapeHtml(String(v))}</span>
+              <button onclick="event.stopPropagation(); copyText('${escapeAttr(String(v))}', '${escapeAttr(k)}')" class="text-slate-400 hover:text-emerald-600 p-0.5 rounded" title="복사">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              </button>
+            </div>
+          </div>
+        `).join("");
+
+        const tagsHtml = (item.tags || []).slice(0, 3).map(tag => `
+          <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium">#${escapeHtml(tag)}</span>
+        `).join("");
+
+        return `
+          <div onclick="openDetailModal('${item.id}')" class="bg-white rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg hover:border-emerald-200 transition-all cursor-pointer flex flex-col justify-between group">
+            <div>
+              <!-- 상단 카테고리 및 날짜 -->
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${meta.badgeClass}">
+                  ${meta.icon} ${escapeHtml(item.category || '기타')}
+                </span>
+                <span class="text-[11px] text-slate-400 font-medium">${formatDateStr(item.createdAt)}</span>
+              </div>
+
+              <!-- 썸네일(이미지/문서/음성) 및 제목 -->
+              <div class="flex gap-3 mb-3">
+                ${getItemThumbnailHtml(item)}
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-bold text-sm text-slate-800 group-hover:text-emerald-700 transition-colors line-clamp-1 mb-1">
+                    ${escapeHtml(item.title)}
+                  </h3>
+                  <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    ${escapeHtml(item.summary || '상세 정보 없음')}
+                  </p>
+                </div>
+              </div>
+
+              <!-- 키-밸류 추출 목록 -->
+              <div class="space-y-1.5 mb-3">
+                ${kvHtml}
+              </div>
+            </div>
+
+            <!-- 하단 태그 및 와이파이 QR 버튼 -->
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <div class="flex flex-wrap gap-1">
+                ${tagsHtml}
+              </div>
+              ${isWifi ? `
+                <button onclick="event.stopPropagation(); openWifiQr('${item.id}')" class="px-2.5 py-1 bg-teal-50 text-teal-700 hover:bg-teal-100 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                  <span>QR</span>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // 파일 선택 트리거들
+    function triggerCamera() {
+      document.getElementById("camera-file-input").click();
+    }
+
+    function triggerGallery() {
+      document.getElementById("gallery-file-input").click();
+    }
+
+    function triggerDoc() {
+      document.getElementById("doc-file-input").click();
+    }
+
+    function triggerAudio() {
+      document.getElementById("audio-file-input").click();
+    }
+
+    // 초고속 이미지 리사이징 & 압축 (10MB -> 150KB로 압축하여 1초대 분석)
+    function compressImage(file, maxDimension = 1280, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+            resolve(compressedBase64);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 멀티모달 파일 선택 핸들러 (이미지 / 문서 / 음성)
+    async function handleFileSelected(event, mode = 'image') {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const imgEl = document.getElementById("scanning-preview-img");
+        const placeholderEl = document.getElementById("scanning-preview-placeholder");
+        const placeholderIcon = document.getElementById("scanning-placeholder-icon");
+        const placeholderName = document.getElementById("scanning-placeholder-name");
+        const titleEl = document.getElementById("scanning-title");
+        const descEl = document.getElementById("scanning-desc");
+
+        let sendBase64 = "";
+        let mimeType = file.type;
+
+        if (mode === 'image') {
+          // 1. 이미지: 0.05초 초고속 압축
+          sendBase64 = await compressImage(file, 1280, 0.82);
+          mimeType = "image/jpeg";
+
+          imgEl.src = sendBase64;
+          imgEl.classList.remove("hidden");
+          placeholderEl.classList.add("hidden");
+          titleEl.innerText = "AI 이미지 시각 분석 중...";
+          descEl.innerHTML = "라벨, 시리얼 번호, 와이파이 비번 등<br>핵심 메타데이터를 정밀 추출하고 있습니다.";
+        } else if (mode === 'audio') {
+          // 2. 음성 메모: Base64 읽기
+          sendBase64 = await readFileAsBase64(file);
+          if (!mimeType) mimeType = "audio/mp4";
+
+          imgEl.classList.add("hidden");
+          placeholderEl.classList.remove("hidden");
+          placeholderIcon.innerText = "🎙️";
+          placeholderName.innerText = file.name;
+          titleEl.innerText = "AI 음성 메모 듣는 중 (STT & 요약)...";
+          descEl.innerHTML = "음성을 듣고 발화 내용을 받아쓰며<br>할 일 및 핵심 결정을 요약하고 있습니다.";
+        } else {
+          // 3. 전자 문서(PDF/CSV/TXT): Base64 읽기
+          sendBase64 = await readFileAsBase64(file);
+          if (!mimeType) mimeType = "application/pdf";
+
+          imgEl.classList.add("hidden");
+          placeholderEl.classList.remove("hidden");
+          placeholderIcon.innerText = "📄";
+          placeholderName.innerText = file.name;
+          titleEl.innerText = "AI 전자 문서(PDF/CSV) 정독 중...";
+          descEl.innerHTML = "문서의 표, 조항, 계약 조건, 규격을<br>정밀 분석하여 핵심 요약을 생성 중입니다.";
+        }
+
+        document.getElementById("ai-scanning-modal").classList.remove("hidden");
+
+        // GAS 백엔드 초고속 전송 & AI 멀티모달 분석
+        if (typeof google !== "undefined" && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler((res) => {
+              document.getElementById("ai-scanning-modal").classList.add("hidden");
+              event.target.value = ""; // 초기화
+              if (res.success) {
+                showToast("AI 멀티모달 분석 및 저장 완료! 🎉");
+                allItems.unshift(res.item);
+                renderItems();
+              } else {
+                showToast("저장 실패: " + res.error, "❌");
+              }
+            })
+            .withFailureHandler((err) => {
+              document.getElementById("ai-scanning-modal").classList.add("hidden");
+              event.target.value = "";
+              showToast("오류 발생: " + err.message, "❌");
+            })
+            .analyzeAndSaveItem(sendBase64, mimeType, file.name);
+        } else {
+          // GitHub Pages 클라이언트 모드 (브라우저에서 직접 Gemini 3.6 API 호출)
+          try {
+            const aiResult = await analyzeFileWithGeminiBrowser(sendBase64, mimeType, file.name);
+            document.getElementById("ai-scanning-modal").classList.add("hidden");
+            event.target.value = "";
+
+            const newItem = {
+              id: 'item_' + Date.now(),
+              createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+              category: aiResult.category || (mode === 'audio' ? '음성메모/회의' : (mode === 'doc' ? '문서/계약' : '가전/디지털')),
+              title: aiResult.title || file.name,
+              summary: aiResult.summary || '멀티모달 파일 분석이 완료되었습니다.',
+              keyValues: aiResult.keyValues || {},
+              tags: aiResult.tags || [mode],
+              imageUrl: sendBase64,
+              fileId: 'local_' + Date.now(),
+              mimeType: mimeType,
+              fileName: file.name
+            };
+
+            await dbSaveItem(newItem);
+            allItems.unshift(newItem);
+            renderItems();
+            showToast("AI 멀티모달 분석 및 저장 완료! 🎉");
+          } catch(apiErr) {
+            document.getElementById("ai-scanning-modal").classList.add("hidden");
+            event.target.value = "";
+            showToast("AI 분석 오류: " + apiErr.message, "❌");
+          }
+        }
+      } catch (err) {
+        showToast("파일 처리 실패: " + err.message, "❌");
+      }
+    }
+
+    // 브라우저 직접 Gemini 멀티모달 API 호출 함수 (GitHub Pages 전용)
+    async function analyzeFileWithGeminiBrowser(base64Data, mimeType, fileName) {
+      const apiKey = localStorage.getItem("gemini_api_key") || DEFAULT_API_KEY;
+      const model = localStorage.getItem("gemini_model") || DEFAULT_MODEL;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const existingCats = Array.from(new Set(allItems.map(i => i.category).filter(Boolean)));
+      const catContext = (existingCats.length > 0)
+        ? `현재 사용자의 기존 카테고리 목록: [${existingCats.join(", ")}]\n- 기존 목록에 적합한 카테고리가 있다면 일관성을 위해 우선적으로 선택하세요.\n- 만약 새로운 분류라면 가장 직관적이고 적절한 새 카테고리명을 직접 생성하세요.`
+        : `카테고리는 내용의 성격에 맞게 한국어로 2~6글자의 직관적인 카테고리명을 직접 생성하거나 선택하세요.`;
+
+      const mime = (mimeType || "image/jpeg").toLowerCase();
+      const isAudio = mime.startsWith("audio/") || (fileName && /\.(mp3|m4a|wav|aac|ogg)$/i.test(fileName));
+      const isDoc = mime === "application/pdf" || mime.startsWith("text/") || (fileName && /\.(pdf|txt|csv|tsv|docx|xlsx)$/i.test(fileName));
+
+      let roleAndInstructions = "";
+      if (isAudio) {
+        roleAndInstructions = `전달된 파일은 [음성 녹음 / 통화 녹음 / 음성 메모] 파일입니다. 음성을 듣고 한국어 상세 요약 및 수치, 할 일(To-Do), 연락처, 결정사항을 keyValues에 추출하세요.`;
+      } else if (isDoc) {
+        roleAndInstructions = `전달된 파일은 [PDF 전자 문서 / 설명서 / 계약서 / CSV] 파일입니다. 표, 조항, 수치, 당사자, 만기일, 규격을 정독하고 요약과 keyValues를 추출하세요.`;
+      } else {
+        roleAndInstructions = `전달된 파일은 [사진 / 이미지 / 캡처본 / 라벨] 파일입니다. 와이파이(SSID/비밀번호), 가전(모델명/시리얼), 자재(규격), 영수증 정보를 요약하고 keyValues를 추출하세요.`;
+      }
+
+      const prompt = `당신은 스마트 AI 인벤토리 어시스턴트 'Keeplea'입니다.\n\n[지침]\n${roleAndInstructions}\n${catContext}\n\n반드시 아래 JSON 스키마를 준수하여 순수 JSON으로만 응답하세요:\n{\n  \"title\": \"명확하고 직관적인 제목\",\n  \"category\": \"적절한 카테고리명\",\n  \"summary\": \"핵심 내용을 요약한 한 줄 설명\",\n  \"keyValues\": { \"항목명1\": \"추출값1\" },\n  \"tags\": [\"키워드1\", \"키워드2\"]\n}`;
+
+      let cleanMime = mime;
+      if (cleanMime === "audio/m4a" || cleanMime === "audio/x-m4a") cleanMime = "audio/mp4";
+      if (cleanMime.startsWith("text/")) cleanMime = "text/plain";
+      const pureBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
+
+      const payload = {
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: cleanMime, data: pureBase64 } }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json"
+        }
+      };
+
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gemini API 호출 실패 (${res.status}): ${errText}`);
+      }
+
+      const data = await res.json();
+      const rawText = data.candidates[0].content.parts[0].text;
+      const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+      return JSON.parse(cleanJson);
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 상세 보기 모달
+    function openDetailModal(itemId) {
+      const item = allItems.find(i => i.id === itemId);
+      if (!item) return;
+      activeItem = JSON.parse(JSON.stringify(item));
+
+      document.getElementById("modal-category-input").value = activeItem.category || '기타';
+      document.getElementById("modal-date").innerText = formatDateStr(activeItem.createdAt);
+      document.getElementById("modal-image").src = activeItem.imageUrl;
+      document.getElementById("modal-image-link").href = activeItem.imageUrl;
+      document.getElementById("modal-title-input").value = activeItem.title || '';
+      document.getElementById("modal-summary-input").value = activeItem.summary || '';
+      document.getElementById("modal-tags-input").value = (activeItem.tags || []).join(", ");
+
+      const isWifi = (activeItem.category && activeItem.category.includes('와이파이')) || (activeItem.keyValues && (activeItem.keyValues['SSID'] || activeItem.keyValues['비밀번호']));
+      const wifiContainer = document.getElementById("modal-wifi-qr-container");
+      if (isWifi) {
+        wifiContainer.classList.remove("hidden");
+      } else {
+        wifiContainer.classList.add("hidden");
+      }
+
+      renderModalKeyValues();
+      document.getElementById("detail-modal").classList.remove("hidden");
+    }
+
+    function renderModalKeyValues() {
+      const list = document.getElementById("modal-keyvalues-list");
+      const entries = Object.entries(activeItem.keyValues || {});
+      
+      if (entries.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-400 py-2">추출된 키-밸류 항목이 없습니다.</p>`;
+        return;
+      }
+
+      list.innerHTML = entries.map(([k, v], idx) => `
+        <div class="flex items-center gap-2">
+          <input type="text" value="${escapeAttr(k)}" onchange="updateKeyName(${idx}, this.value)" placeholder="항목명" class="w-1/3 text-xs font-semibold text-slate-600 p-2 bg-slate-50 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none">
+          <input type="text" value="${escapeAttr(String(v))}" onchange="updateKeyValue(${idx}, this.value)" placeholder="값" class="flex-1 text-xs font-mono text-slate-800 p-2 bg-slate-50 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none">
+          <button onclick="removeKeyField(${idx})" class="p-2 text-slate-400 hover:text-rose-500 rounded-lg">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function addKeyField() {
+      if (!activeItem.keyValues) activeItem.keyValues = {};
+      activeItem.keyValues['새 항목'] = '';
+      renderModalKeyValues();
+    }
+
+    function updateKeyName(idx, newKey) {
+      const entries = Object.entries(activeItem.keyValues || {});
+      if (entries[idx]) {
+        const val = entries[idx][1];
+        const newObj = {};
+        entries.forEach(([k, v], i) => {
+          if (i === idx) newObj[newKey || '항목'] = val;
+          else newObj[k] = v;
+        });
+        activeItem.keyValues = newObj;
+      }
+    }
+
+    function updateKeyValue(idx, newVal) {
+      const entries = Object.entries(activeItem.keyValues || {});
+      if (entries[idx]) {
+        const key = entries[idx][0];
+        activeItem.keyValues[key] = newVal;
+      }
+    }
+
+    function removeKeyField(idx) {
+      const entries = Object.entries(activeItem.keyValues || {});
+      if (entries[idx]) {
+        const key = entries[idx][0];
+        delete activeItem.keyValues[key];
+        renderModalKeyValues();
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById("detail-modal").classList.add("hidden");
+      activeItem = null;
+    }
+
+    async function saveItemChanges() {
+      if (!activeItem) return;
+      activeItem.category = document.getElementById("modal-category-input").value.trim() || '기타';
+      activeItem.title = document.getElementById("modal-title-input").value.trim();
+      activeItem.summary = document.getElementById("modal-summary-input").value.trim();
+      activeItem.tags = document.getElementById("modal-tags-input").value.split(",").map(t => t.trim()).filter(Boolean);
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.success) {
+              showToast("성공적으로 저장되었습니다!");
+              const targetIdx = allItems.findIndex(i => i.id === activeItem.id);
+              if (targetIdx !== -1) {
+                allItems[targetIdx] = JSON.parse(JSON.stringify(activeItem));
+              }
+              renderItems();
+              closeDetailModal();
+            } else {
+              showToast("저장 실패: " + res.error, "❌");
+            }
+          })
+          .updateItem(activeItem.id, activeItem);
+      } else {
+        const targetIdx = allItems.findIndex(i => i.id === activeItem.id);
+        if (targetIdx !== -1) {
+          allItems[targetIdx] = JSON.parse(JSON.stringify(activeItem));
+          await dbSaveItem(allItems[targetIdx]);
+        }
+        renderItems();
+        closeDetailModal();
+        showToast("수정되었습니다.");
+      }
+    }
+
+    async function confirmDeleteItem() {
+      if (!activeItem) return;
+      if (!confirm("정말 이 항목을 삭제하시겠습니까?")) return;
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.success) {
+              showToast("삭제되었습니다.");
+              allItems = allItems.filter(i => i.id !== activeItem.id);
+              renderItems();
+              closeDetailModal();
+            } else {
+              showToast("삭제 실패: " + res.error, "❌");
+            }
+          })
+          .deleteItem(activeItem.id);
+      } else {
+        await dbDeleteItem(activeItem.id);
+        allItems = allItems.filter(i => i.id !== activeItem.id);
+        renderItems();
+        closeDetailModal();
+        showToast("삭제되었습니다.");
+      }
+    }
+
+    // 와이파이 QR 모달
+    function openWifiQr(itemId) {
+      const item = allItems.find(i => i.id === itemId);
+      if (!item) return;
+      renderWifiQrFromData(item);
+    }
+
+    function openWifiQrModalFromDetail() {
+      if (!activeItem) return;
+      renderWifiQrFromData(activeItem);
+    }
+
+    function renderWifiQrFromData(item) {
+      const kv = item.keyValues || {};
+      const ssid = kv['SSID'] || kv['와이파이이름'] || kv['네트워크이름'] || item.title;
+      const pw = kv['비밀번호'] || kv['PW'] || kv['Password'] || kv['비번'] || '';
+
+      document.getElementById("qr-ssid-title").innerText = ssid;
+      document.getElementById("qr-password-text").innerText = pw || '(비밀번호 없음)';
+      document.getElementById("qr-password-text").dataset.fullPw = pw;
+
+      // Wi-Fi 표준 QR 포맷: WIFI:T:WPA;S:MySSID;P:MyPassword;;
+      const wifiQrPayload = `WIFI:T:WPA;S:${ssid};P:${pw};;`;
+      
+      const qrContainer = document.getElementById("qrcode-container");
+      qrContainer.innerHTML = "";
+      new QRCode(qrContainer, {
+        text: wifiQrPayload,
+        width: 180,
+        height: 180,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      document.getElementById("wifi-qr-modal").classList.remove("hidden");
+    }
+
+    function closeWifiQrModal() {
+      document.getElementById("wifi-qr-modal").classList.add("hidden");
+    }
+
+    function copyQrPassword() {
+      const pw = document.getElementById("qr-password-text").dataset.fullPw || '';
+      copyText(pw, "비밀번호");
+    }
+
+    // 설정 모달
+    function openSettingsModal() {
+      document.getElementById("settings-modal").classList.remove("hidden");
+    }
+
+    function closeSettingsModal() {
+      document.getElementById("settings-modal").classList.add("hidden");
+    }
+
+    function saveApiKeySettings() {
+      const key = document.getElementById("settings-api-key").value.trim();
+      if (!key) {
+        alert("API 키를 입력해주세요.");
+        return;
+      }
+
+      const selectVal = document.getElementById("settings-model-select").value;
+      const customVal = document.getElementById("settings-model-custom").value.trim();
+      const selectedModel = (selectVal === 'custom') ? (customVal || 'gemini-3.6-flash') : selectVal;
+
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler((res) => {
+            showToast(`설정 저장 완료! (${selectedModel}) ✨`);
+            closeSettingsModal();
+            loadSettings();
+          })
+          .withFailureHandler((err) => {
+            alert("저장 실패: " + err.message);
+          })
+          .saveApiKey(key, selectedModel);
+      } else {
+        localStorage.setItem("gemini_api_key", key);
+        localStorage.setItem("gemini_model", selectedModel);
+        showToast(`설정 저장 완료! (${selectedModel}) ✨`);
+        closeSettingsModal();
+        loadSettings();
+      }
+    }
+
+    // JSON 백업 다운로드
+    async function exportBackupJson() {
+      const items = await dbGetAllItems();
+      const exportData = {
+        app: "Keeplea",
+        version: "2.0",
+        exportedAt: new Date().toISOString(),
+        itemsCount: items.length,
+        items: items
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `keeplea_backup_${new Date().toISOString().substring(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("백업 파일이 다운로드되었습니다! 📦");
+    }
+
+    // JSON 백업 파일 복원
+    function importBackupJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          const importedItems = data.items || (Array.isArray(data) ? data : []);
+          if (!Array.isArray(importedItems) || importedItems.length === 0) {
+            alert("유효한 백업 데이터가 없습니다.");
+            return;
+          }
+
+          if (!confirm(`${importedItems.length}개의 항목을 복원하시겠습니까?`)) return;
+
+          for (const item of importedItems) {
+            await dbSaveItem(item);
+          }
+          await loadItems();
+          showToast(`${importedItems.length}개 항목 복원 완료! 🎉`);
+          event.target.value = "";
+          closeSettingsModal();
+        } catch (err) {
+          alert("파일 복원 실패: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 텍스트 클립보드 복사
+    function copyText(text, label = "항목") {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(`'${label}' 복사 완료! 📋`);
+        }).catch(() => {
+          fallbackCopy(text, label);
+        });
+      } else {
+        fallbackCopy(text, label);
+      }
+    }
+
+    function fallbackCopy(text, label) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(`'${label}' 복사 완료! 📋`);
+      } catch (err) {
+        showToast("복사 실패", "❌");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // 유틸리티
+    function formatDateStr(dateStr) {
+      if (!dateStr) return '';
+      return String(dateStr).substring(0, 10);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
