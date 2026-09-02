@@ -627,23 +627,12 @@
           const items = await dbGetAllItems();
           if (refreshIcon) refreshIcon.classList.remove("animate-spin");
           document.getElementById("loading-state").classList.add("hidden");
-          allItems = items.length > 0 ? items : [
-            {
-              id: 'sample_1',
-              createdAt: '2026-09-02 08:30:00',
-              category: '와이파이/네트워크',
-              title: '거실 메인 ipTIME 공유기 (예시)',
-              summary: '거실에 설치된 5GHz 기가비트 와이파이 공유기',
-              keyValues: { 'SSID': 'MyHome_5G', '비밀번호': 'secretPass888!', 'IP주소': '192.168.0.1' },
-              tags: ['와이파이', '공유기', '거실', '인터넷'],
-              imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400',
-              fileId: 'mock'
-            }
-          ];
+          allItems = items || [];
           renderItems();
         } catch(e) {
           if (refreshIcon) refreshIcon.classList.remove("animate-spin");
           document.getElementById("loading-state").classList.add("hidden");
+          allItems = [];
           renderItems();
         }
       }
