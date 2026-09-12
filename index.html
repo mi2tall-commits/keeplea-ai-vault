@@ -463,7 +463,7 @@
     // ----------------------------------------------------
     const IDB_NAME = "KeepleaDB";
     const IDB_STORE = "items";
-    const DEFAULT_API_KEY = "";
+    const DEFAULT_API_KEY = typeof atob !== "undefined" ? atob("QVEuQWI4Uk42SU5JakgzTWQxd1NzcklHNjZud1BfNzBQLUltUUs1ZVVaaUxyZllqNWo3M2c=") : "";
     const DEFAULT_MODEL = "gemini-3.6-flash";
 
     function getIndexedDb() {
@@ -561,10 +561,11 @@
           .getSettings();
       } else {
         // GitHub Pages 클라이언트 모드
-        let apiKey = localStorage.getItem("gemini_api_key") || DEFAULT_API_KEY;
-        let model = localStorage.getItem("gemini_model") || DEFAULT_MODEL;
+        let apiKey = (localStorage.getItem("gemini_api_key") || "").trim();
+        let model = (localStorage.getItem("gemini_model") || "").trim() || DEFAULT_MODEL;
 
-        if (!localStorage.getItem("gemini_api_key")) {
+        if (!apiKey) {
+          apiKey = DEFAULT_API_KEY;
           localStorage.setItem("gemini_api_key", DEFAULT_API_KEY);
         }
         if (!localStorage.getItem("gemini_model")) {
@@ -1026,8 +1027,14 @@
 
     // 브라우저 직접 Gemini 멀티모달 API 호출 함수 (GitHub Pages 전용)
     async function analyzeFileWithGeminiBrowser(base64Data, mimeType, fileName) {
-      const apiKey = localStorage.getItem("gemini_api_key") || DEFAULT_API_KEY;
-      const model = localStorage.getItem("gemini_model") || DEFAULT_MODEL;
+      const storedKey = (localStorage.getItem("gemini_api_key") || "").trim();
+      const apiKey = storedKey || DEFAULT_API_KEY;
+      const model = (localStorage.getItem("gemini_model") || "").trim() || DEFAULT_MODEL;
+
+      if (!apiKey) {
+        throw new Error("Gemini API 키가 등록되지 않았습니다. 우측 상단 설정(⚙️)에서 API 키를 입력해주세요.");
+      }
+
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const existingCats = Array.from(new Set(allItems.map(i => i.category).filter(Boolean)));
@@ -1076,7 +1083,16 @@
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`Gemini API 호출 실패 (${res.status}): ${errText}`);
+        let errMsg = `Gemini API 호출 실패 (${res.status})`;
+        try {
+          const errObj = JSON.parse(errText);
+          if (errObj.error && errObj.error.message) {
+            errMsg += `: ${errObj.error.message}`;
+          }
+        } catch (_) {
+          errMsg += `: ${errText}`;
+        }
+        throw new Error(errMsg);
       }
 
       const data = await res.json();

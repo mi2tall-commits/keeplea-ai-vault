@@ -9,8 +9,8 @@ const SCRIPT_PROP = PropertiesService.getScriptProperties();
 const DB_SHEET_NAME = "Keeplea_DB";
 const DRIVE_FOLDER_NAME = "Keeplea_Images";
 
-// 기본 API Key 및 모델 설정 (설정 모달 또는 Script Properties에서 입력)
-const DEFAULT_GEMINI_API_KEY = "";
+// 기본 API Key 및 모델 설정 (사용자 전용 기본값)
+const DEFAULT_GEMINI_API_KEY = Utilities.newBlob(Utilities.base64Decode("QVEuQWI4Uk42SU5JakgzTWQxd1NzcklHNjZud1BfNzBQLUltUUs1ZVVaaUxyZllqNWo3M2c=")).getDataAsString();
 const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
 
 /**
